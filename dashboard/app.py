@@ -10,6 +10,19 @@ Run:
 
 import streamlit as st
 import psycopg2
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+def get_db_config():
+    return {
+        "dbname":   os.getenv("DB_NAME", "worldjobs"),
+        "user":     os.getenv("DB_USER", "jobscraper"),
+        "password": os.getenv("DB_PASSWORD", "jobscraper123"),
+        "host":     os.getenv("DB_HOST", "localhost"),
+        "port":     int(os.getenv("DB_PORT", 5432)),
+    }
+
 import psycopg2.extras
 import pandas as pd
 import hashlib
@@ -166,13 +179,7 @@ hr { border-color: #2a3040 !important; }
 
 # ── DB ────────────────────────────────────────────────────────────────────────
 
-DB_CONFIG = {
-    "dbname":   "worldjobs",
-    "user":     "jobscraper",
-    "password": "jobscraper123",
-    "host":     "localhost",
-    "port":     5432,
-}
+DB_CONFIG = get_db_config()
 
 RESUME_DIR = Path("uploads/resumes")
 RESUME_DIR.mkdir(parents=True, exist_ok=True)
