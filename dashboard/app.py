@@ -26,6 +26,7 @@ def get_db_config():
 import psycopg2.extras
 import pandas as pd
 import hashlib
+import extra_streamlit_components as stx
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -274,8 +275,25 @@ def require_role(role):
 
 # ── Session state init ────────────────────────────────────────────────────────
 
+# ── Cookie-backed session ─────────────────────────────────────────────────────
+@st.cache_resource
+def get_cookie_manager():
+    return stx.CookieManager()
+
+cookie_manager = get_cookie_manager()
+
 if "user" not in st.session_state:
-    st.session_state.user = None
+    # Try to restore session from cookie
+    saved_id = cookie_manager.get("wj_user_id")
+    if saved_id:
+        try:
+            restored = query("SELECT * FROM users WHERE id=%s AND is_active=TRUE", (int(saved_id),), fetch="one")
+            st.session_state.user = restored
+        except Exception:
+            st.session_state.user = None
+    else:
+        st.session_state.user = None
+
 if "page" not in st.session_state:
     st.session_state.page = "Job Board"
 
@@ -331,6 +349,7 @@ with st.sidebar:
     if user:
         if st.button("LOGOUT"):
             st.session_state.user = None
+            cookie_manager.delete("wj_user_id", key="del_cookie")
             st.rerun()
 
 
@@ -710,6 +729,7 @@ elif page == "Login / Register":
                     user = login(email, password)
                     if user:
                         st.session_state.user = user
+                        cookie_manager.set("wj_user_id", str(user["id"]), key="set_login_cookie")
                         st.success(f"Welcome back, {user['full_name']}!")
                         st.rerun()
                     else:
@@ -739,6 +759,7 @@ elif page == "Login / Register":
                         st.error(err)
                     else:
                         st.session_state.user = user
+                        cookie_manager.set("wj_user_id", str(user["id"]), key="set_register_cookie")
                         st.success("Account created! Welcome.")
                         st.rerun()
 
