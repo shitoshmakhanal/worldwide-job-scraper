@@ -296,7 +296,7 @@ with st.sidebar:
     # Nav options based on auth state
     nav_options = ["Job Board"]
     if user:
-        nav_options += ["My Profile", "My Applications"]
+        nav_options += ["For You", "My Profile", "My Applications"]
         if user["role"] in ("employer", "admin"):
             nav_options += ["Post a Job", "My Postings"]
         if user["role"] == "admin":
@@ -571,6 +571,122 @@ if page == "Job Board":
                                 st.rerun()
 
                 st.markdown("<hr style='margin:4px 0;border-color:#1e2330'>", unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FOR YOU
+# ═══════════════════════════════════════════════════════════════════════════════
+
+elif page == "For You":
+    user = require_login()
+    if not user:
+        st.warning("Please log in to see personalised recommendations.")
+        st.stop()
+
+    st.markdown("## FOR YOU")
+
+    from scraper.utils.recommender import get_recommendations
+
+    profile = query("SELECT * FROM jobseeker_profiles WHERE user_id=%s", (user["id"],), fetch="one")
+
+    if not profile or not profile.get("skills"):
+        st.info("Add your skills and current title in **My Profile** to get personalised recommendations.")
+        st.stop()
+
+    st.caption(f"Based on: **{profile.get('current_title','')}** · Skills: {profile.get('skills','')}")
+    if profile.get("preferred_location"):
+        st.caption(f"Preferred location: {profile['preferred_location']} · Type: {profile.get('preferred_job_type','any')}")
+
+    st.markdown("---")
+
+    with st.spinner("Finding best matches..."):
+        recs = get_recommendations(user["id"], limit=30)
+
+    if not recs:
+        st.info("No matches found yet — try adding more skills to your profile.")
+        st.stop()
+
+    st.caption(f"Found {len(recs)} matches")
+
+    # Column headers
+    h1, h2, h3, h4, h5, h6 = st.columns([4, 3, 2, 2, 2, 2])
+    h1.markdown("<span style='font-family:IBM Plex Mono,monospace;font-size:10px;color:#4a5a70;letter-spacing:1.5px'>TITLE / COMPANY</span>", unsafe_allow_html=True)
+    h2.markdown("<span style='font-family:IBM Plex Mono,monospace;font-size:10px;color:#4a5a70;letter-spacing:1.5px'>LOCATION</span>", unsafe_allow_html=True)
+    h3.markdown("<span style='font-family:IBM Plex Mono,monospace;font-size:10px;color:#4a5a70;letter-spacing:1.5px'>MATCH</span>", unsafe_allow_html=True)
+    h4.markdown("<span style='font-family:IBM Plex Mono,monospace;font-size:10px;color:#4a5a70;letter-spacing:1.5px'>TYPE</span>", unsafe_allow_html=True)
+    h5.markdown("<span style='font-family:IBM Plex Mono,monospace;font-size:10px;color:#4a5a70;letter-spacing:1.5px'>SOURCE</span>", unsafe_allow_html=True)
+    h6.markdown("<span style='font-family:IBM Plex Mono,monospace;font-size:10px;color:#4a5a70;letter-spacing:1.5px'>ACTION</span>", unsafe_allow_html=True)
+    st.markdown("<hr style='margin:4px 0;border-color:#2a3040'>", unsafe_allow_html=True)
+
+    for rec in recs:
+        c1, c2, c3, c4, c5, c6 = st.columns([4, 3, 2, 2, 2, 2])
+
+        with c1:
+            st.markdown(f"**{rec['title']}**")
+            st.caption(rec.get("company") or "—")
+            if rec.get("match_reasons"):
+                st.caption("🎯 " + " · ".join(rec["match_reasons"][:2]))
+
+        with c2:
+            st.caption(rec.get("location") or "—")
+
+        with c3:
+            score_pct = int(rec["score"] * 100)
+            if score_pct >= 50:
+                color = "#00d4aa"
+            elif score_pct >= 30:
+                color = "#f5a623"
+            else:
+                color = "#8899b0"
+            st.markdown(
+                f"<span style='font-family:IBM Plex Mono,monospace;font-size:13px;color:{color};font-weight:500'>{score_pct}%</span>",
+                unsafe_allow_html=True
+            )
+
+        with c4:
+            st.caption(rec.get("job_type") or "—")
+
+        with c5:
+            st.caption(f"`{rec.get('source','')}`")
+
+        with c6:
+            already = query(
+                "SELECT id FROM applications WHERE user_id=%s AND job_id=%s",
+                (user["id"], rec["id"]), fetch="one"
+            )
+            if already:
+                st.caption("✓ Applied")
+            else:
+                if st.button("APPLY", key=f"rec_apply_{rec['id']}"):
+                    st.session_state[f"confirm_{rec['id']}"] = True
+
+        if st.session_state.get(f"confirm_{rec['id']}"):
+            with st.expander(f"Confirm — {rec['title']} at {rec.get('company','')}", expanded=True):
+                cover = (profile.get("cover_letter_tpl") or "").replace(
+                    "{role}", rec["title"]
+                ).replace("{company}", rec.get("company") or "")
+                st.markdown(f"**Role:** {rec['title']}")
+                st.markdown(f"**Company:** {rec.get('company') or '—'}")
+                st.markdown(f"**Location:** {rec.get('location') or '—'}")
+                if rec.get("job_url"):
+                    st.markdown(f"[🔗 View Original Posting]({rec['job_url']})")
+                cover_edit = st.text_area("Cover Letter", value=cover, height=100, key=f"rec_cover_{rec['id']}")
+                cc1, cc2 = st.columns(2)
+                with cc1:
+                    if st.button("CONFIRM & APPLY", key=f"rec_confirm_{rec['id']}"):
+                        execute("""
+                            INSERT INTO applications (user_id, job_id, cover_letter, resume_path)
+                            VALUES (%s, %s, %s, %s)
+                        """, (user["id"], rec["id"], cover_edit, profile.get("resume_path")))
+                        st.session_state[f"confirm_{rec['id']}"] = False
+                        st.success("Applied!")
+                        st.rerun()
+                with cc2:
+                    if st.button("CANCEL", key=f"rec_cancel_{rec['id']}"):
+                        st.session_state[f"confirm_{rec['id']}"] = False
+                        st.rerun()
+
+        st.markdown("<hr style='margin:4px 0;border-color:#1e2330'>", unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
