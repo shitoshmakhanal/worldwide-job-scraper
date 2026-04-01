@@ -296,7 +296,8 @@ with st.sidebar:
     # Nav options based on auth state
     nav_options = ["Job Board"]
     if user:
-        nav_options += ["For You", "My Profile", "My Applications"]
+        if user["role"] == "jobseeker":
+            nav_options += ["For You", "My Profile", "My Applications"]
         if user["role"] in ("employer", "admin"):
             nav_options += ["Post a Job", "My Postings"]
         if user["role"] == "admin":
