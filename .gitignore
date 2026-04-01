@@ -1,0 +1,25 @@
+# Virtual environment
+venv/
+
+# Logs
+logs/
+*.log
+
+# Uploads / resumes
+uploads/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Streamlit
+.streamlit/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ChromeDriver cache
+.wdm/
