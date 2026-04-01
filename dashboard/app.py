@@ -584,43 +584,46 @@ elif page == "Login / Register":
 
     with tab_login:
         st.markdown("### Sign in")
-        email = st.text_input("Email", key="login_email")
-        password = st.text_input("Password", type="password", key="login_pw")
-        if st.button("LOGIN"):
-            if email and password:
-                user = login(email, password)
-                if user:
-                    st.session_state.user = user
-                    st.success(f"Welcome back, {user['full_name']}!")
-                    st.rerun()
+        with st.form("login_form"):
+            email = st.text_input("Email", key="login_email")
+            password = st.text_input("Password", type="password", key="login_pw")
+            submitted = st.form_submit_button("LOGIN")
+            if submitted:
+                if email and password:
+                    user = login(email, password)
+                    if user:
+                        st.session_state.user = user
+                        st.success(f"Welcome back, {user['full_name']}!")
+                        st.rerun()
+                    else:
+                        st.error("Invalid email or password.")
                 else:
-                    st.error("Invalid email or password.")
-            else:
-                st.warning("Please enter email and password.")
+                    st.warning("Please enter email and password.")
 
     with tab_register:
         st.markdown("### Create account")
-        r_name  = st.text_input("Full Name", key="reg_name")
-        r_email = st.text_input("Email", key="reg_email")
-        r_pw    = st.text_input("Password", type="password", key="reg_pw")
-        r_pw2   = st.text_input("Confirm Password", type="password", key="reg_pw2")
-        r_role  = st.selectbox("I am a", ["jobseeker", "employer"], key="reg_role")
-
-        if st.button("CREATE ACCOUNT"):
-            if not all([r_name, r_email, r_pw, r_pw2]):
-                st.warning("Please fill in all fields.")
-            elif r_pw != r_pw2:
-                st.error("Passwords do not match.")
-            elif len(r_pw) < 8:
-                st.error("Password must be at least 8 characters.")
-            else:
-                user, err = register(r_email, r_pw, r_name, r_role)
-                if err:
-                    st.error(err)
+        with st.form("register_form"):
+            r_name  = st.text_input("Full Name", key="reg_name")
+            r_email = st.text_input("Email", key="reg_email")
+            r_pw    = st.text_input("Password", type="password", key="reg_pw")
+            r_pw2   = st.text_input("Confirm Password", type="password", key="reg_pw2")
+            r_role  = st.selectbox("I am a", ["jobseeker", "employer"], key="reg_role")
+            submitted = st.form_submit_button("CREATE ACCOUNT")
+            if submitted:
+                if not all([r_name, r_email, r_pw, r_pw2]):
+                    st.warning("Please fill in all fields.")
+                elif r_pw != r_pw2:
+                    st.error("Passwords do not match.")
+                elif len(r_pw) < 8:
+                    st.error("Password must be at least 8 characters.")
                 else:
-                    st.session_state.user = user
-                    st.success("Account created! Welcome.")
-                    st.rerun()
+                    user, err = register(r_email, r_pw, r_name, r_role)
+                    if err:
+                        st.error(err)
+                    else:
+                        st.session_state.user = user
+                        st.success("Account created! Welcome.")
+                        st.rerun()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

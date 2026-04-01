@@ -27,6 +27,19 @@ def run_all():
     db.close()
     logger.success(f"All done. {total_new} new jobs this run. {total} total in database.")
 
+def expire_old_jobs():
+    from scraper.utils.db import SessionLocal
+    import sqlalchemy
+    db = SessionLocal()
+    result = db.execute(sqlalchemy.text(
+        "UPDATE jobs SET is_active=FALSE WHERE scraped_at < NOW() - INTERVAL '30 days' AND is_active=TRUE"
+    ))
+    db.commit()
+    count = result.rowcount
+    db.close()
+    logger.info(f"Expired {count} jobs older than 30 days.")
+
 if __name__ == "__main__":
     run_all()
+    expire_old_jobs()
     run_dedup()
