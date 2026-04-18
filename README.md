@@ -40,6 +40,9 @@ Current Database: 6,000+ unique jobs across 6 continents
 - Auto-dedup — Runs after every scrape
   *Auto-expiry — Marks stale jobs inactive
 
----
+---<img width="1919" height="947" alt="image" src="https://github.com/user-attachments/assets/e841b2d9-95ef-4b52-ab99-db45df3f3a3b" />
+<img width="1919" height="937" alt="image" src="https://github.com/user-attachments/assets/b3f1356a-c2a7-4df6-bf53-c5d0dde38bde" />
+
+
 
 ## 🏗️ Architecture
