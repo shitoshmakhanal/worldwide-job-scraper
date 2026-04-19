@@ -362,7 +362,7 @@ if page == "Job Board":
 
     # KPIs
     import psycopg2, psycopg2.extras as _extras
-    _conn = psycopg2.connect(dbname="worldjobs", user="jobscraper", password="jobscraper123", host="localhost", port=5432)
+    _conn = psycopg2.connect(**DB_CONFIG)
     _cur = _conn.cursor(cursor_factory=_extras.RealDictCursor)
     _cur.execute("""
         SELECT
