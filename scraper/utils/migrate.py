@@ -16,7 +16,7 @@ def get_db_config():
     return {
         "dbname":   os.getenv("DB_NAME", "worldjobs"),
         "user":     os.getenv("DB_USER", "jobscraper"),
-        "password": os.getenv("DB_PASSWORD", "jobscraper123"),
+        "password": os.getenv("DB_PASSWORD"),
         "host":     os.getenv("DB_HOST", "localhost"),
         "port":     int(os.getenv("DB_PORT", 5432)),
     }
