@@ -154,7 +154,41 @@ def create_employer_posts(cur):
     print("  ✓ employer_posts")
 
 
-# ── 5. applications ───────────────────────────────────────────────────────────
+# ── 5. jobs (scraped listings) ───────────────────────────────────────────────
+@migration
+def create_jobs(cur):
+    """
+    Raw scraped job listings from external job boards.
+    """
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS jobs (
+            id                  SERIAL PRIMARY KEY,
+            title               VARCHAR(255) NOT NULL,
+            company             VARCHAR(255),
+            location            VARCHAR(255),
+            country             VARCHAR(100),
+            region              VARCHAR(100),
+            job_type            VARCHAR(50),
+            category            VARCHAR(100),
+            skills              TEXT,
+            salary_min          NUMERIC,
+            salary_max          NUMERIC,
+            salary_currency     VARCHAR(10),
+            job_url             VARCHAR(1000),
+            source              VARCHAR(100),
+            posted_date         VARCHAR(100),
+            is_active           BOOLEAN DEFAULT TRUE,
+            scraped_at          TIMESTAMP DEFAULT NOW()
+        );
+    """)
+    cur.execute("""
+        CREATE INDEX IF NOT EXISTS idx_jobs_active
+        ON jobs (is_active);
+    """)
+    print("  ✓ jobs")
+
+
+# ── 6. applications ───────────────────────────────────────────────────────────
 @migration
 def create_applications(cur):
     """
@@ -198,7 +232,7 @@ def create_applications(cur):
     print("  ✓ applications")
 
 
-# ── 6. post_views (optional analytics) ───────────────────────────────────────
+# ── 7. post_views (optional analytics) ───────────────────────────────────────
 @migration
 def create_post_views(cur):
     """
@@ -217,7 +251,7 @@ def create_post_views(cur):
     print("  ✓ post_views")
 
 
-# ── 7. Stamp existing jobs with source='employer' helper view ─────────────────
+# ── 8. Stamp existing jobs with source='employer' helper view ─────────────────
 @migration
 def create_unified_jobs_view(cur):
     """
@@ -290,12 +324,13 @@ def run_migrations():
             for fn in MIGRATIONS:
                 fn(cur)
         conn.commit()
-        print("\n✅ All migrations complete.\n")
+        print("\n All migrations complete.\n")
         print("New tables created:")
         print("  • users")
         print("  • jobseeker_profiles")
         print("  • employer_profiles")
         print("  • employer_posts")
+        print("  • jobs")
         print("  • applications")
         print("  • post_views")
         print("  • unified_jobs  (VIEW — merges scraped + employer jobs)\n")
@@ -303,7 +338,7 @@ def run_migrations():
 
     except Exception as e:
         conn.rollback()
-        print(f"\n❌ Migration failed: {e}")
+        print(f"\n Migration failed: {e}")
         raise
     finally:
         conn.close()
